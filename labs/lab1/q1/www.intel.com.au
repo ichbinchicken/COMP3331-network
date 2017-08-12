@@ -1,0 +1,15 @@
+PING e117.b.akamaiedge.net (23.215.56.176) 4(32) bytes of data.
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=1 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=2 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=3 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=4 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=5 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=6 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=7 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=8 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=9 ttl=56
+12 bytes from a23-215-56-176.deploy.static.akamaitechnologies.com (23.215.56.176): icmp_req=10 ttl=56
+
+--- e117.b.akamaiedge.net ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9012ms
+

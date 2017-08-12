@@ -1,0 +1,38 @@
+subproblem 2:
+
+#1
+www.nyu.edu
+1.  how many routers are there between your workstation and www.nyu.edu?
+    We can only say at least 23 rounters are on the path. 
+    From my output, #22 router cannot be indentified for some reasons, but we can conclude there must be a router at #22.
+    However, from #23 to #30, there are two different scenarios:
+        a. It is more likely that #23 is the destination, but this router has not been set to indicate that it is the destination
+           of the path,-that is, ICMP Port Unreachable Messages cannot be returned to signal the Traceroute Program that it is finish.
+           Yet my host had been sending datagrams to probe. While reaching #23, it only returned ICMP TEM. However, as TTL would not be
+           be zero, the datagrams would keep probing beyond the destination. In this situation, we cannot tell anything.
+        b. There is another possibility that #23 is not the destination of the path. However, for some other reasons, the latter routers can
+           not be indentified. Also, traceroute program can only send 30*3 datagrams and list them as output. We cannot tell whether 
+           we reach the destination or not.
+        c. Traceroute does not guarantee to reach the destination as internal routers in the destination side might block these packets. Thus, it is not necessary to exactly reach to the IP of the destination. 
+2.  the first 5 routers belong to UNSW network. #6 is in Darlinghurst in Sydney.
+3.  Due to our poor Australian internet, to answer this question, we can only tell from the geographic location of its IP address.
+    Hence, we found that et-2-1-0.bdr1.a.sea.aarnet.net.au (113.197.15.201) is at Canberra and abilene-1-lo-jmb-706.sttlwa.pacificwave.net (207.231.240.8) is at California. Apparently, the packets cross the Pacific Ocean.
+
+#2
+1. For www.u-tokyo.ac.jp, we can see the last router in Australia @ge-4_0_0.bb1.a.pao.aarnet.net.au (202.158.194.177) is directly connecting the router in Japan. And this router is in Perth, WA. However, the path has diverged at et-0-3-0.pe1.bkvl.nsw.aarnet.net.au (113.197.15.147) from the other two websites.
+2. For www.ucla.edu and  www.lancaster.ac.uk, they diverged beyond the border of Australia at et-2-1-0.bdr1.a.sea.aarnet.net.au (113.197.15.201).
+More details @202.158.194.177. The location is in Nedlands, Perth. It belongs to AARNET internet provider.
+www.u-tokyo.ac.jp: 15 hops
+www.ucla.edu: 14 hops
+www.lancaster.ac.uk: 26 hops
+Distance: Sydney <->Tokyo(UT): 7822km
+Distance: Sydney <->Los Angeles(UCLA): 12066km
+Distance: Sydney <-> Bailrigg(Lancaster): 16980km
+
+It seems like it is not proportional because the distance between Sydney and Los Angeles is much further than that between Syd and Tokyo, but the num of hops is similar.
+
+#3
+3. From Singapore Server to my CSE host, it goes through Singapore, HK, America and enter into the border of Australia in Western Australia. However, from my CSE host to Singapore server, it goes through America and Singapore only. On the other hand, It has the same router when the packers enter into the border of Australia(in WA).
+About the telstra net, there are similar routers from my CSE host to telstra network and from telstra network to my CSE host. The only difference is the last three digits and I believe the reason is that some "internal" routers may be distributed randomly.
+
+From my Google Search, it seems like when we change another ISP or connect to global ISP, routing path would be changed. This is because It is where administrative policies are most likely to change. This is also called asymmetric routing. 
