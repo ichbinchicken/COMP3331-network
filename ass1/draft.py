@@ -2,6 +2,19 @@
 from ctypes import *
 import sys
 import struct
+SYN = 0b1000
+ACK = 0b0100
+FIN = 0b0010
+DATA = 0b0001
+def CheckingFlags(combo):
+    return {
+        SYN: "S",
+        ACK: "A",
+        FIN: "F",
+        DATA: "D",
+        (SYN|ACK): "SA",
+        (FIN|ACK): "FA",
+    }[combo]
 class Segments(Structure):
        _fields_ = [("flags", c_uint64, 4),  # SYN = 1000, ACK = 0100, FIN = 0010, DATA = 0001
                    ("length", c_uint64, 13),  # maximum length(MSS) is 536.
@@ -50,4 +63,6 @@ print(dataBytes2)
 data2 = BytesToLonglong(dataBytes2)
 print(hex(data2[0]))
 print(type(FileToBytes("test1.txt")))
-print("****")
+print(dataBytes2[0:2])
+print("checking flags...")
+print(CheckingFlags((SYN|ACK)))

@@ -16,7 +16,7 @@ for i in range (0,10):
     try:
         s.recvfrom(1024)
         b = time()
-        print("ping to %s, seq = %d, rrt = %d ms" %(host, i, (b-a)*1000));
+        #print("ping to %s, seq = %d, rrt = %d ms" %(host, i, (b-a)*1000));
     except timeout:
         print ("", end ='')
 s.close()
