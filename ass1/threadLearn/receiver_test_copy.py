@@ -13,9 +13,9 @@ print("Receiver is open...")
 
 while True:
     msg, sender_ip = server_socket.recvfrom(2048)
-    random.seed(42)
-    i = random.randrange(3)
-    #if (i<2):
-    ack_num = int.from_bytes(msg, byteorder='big')
-    server_socket.sendto(bytes([ack_num+1]), sender_ip)
-    print("msg recv'd: %s, ack num: %d" % (ack_num, ack_num+1))
+    i = random.randrange(5)
+    print(i)
+    if (i<3):
+        ack_num = int.from_bytes(msg, byteorder='big')
+        server_socket.sendto(bytes([ack_num+1]), sender_ip)
+        print("msg recv'd: %s, ack num: %d" % (ack_num, ack_num+1))

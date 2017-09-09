@@ -30,15 +30,28 @@ senderSocket = socket(AF_INET, SOCK_DGRAM)
 senderSocket.settimeout(timeOut)
 logF = open("Sender_log.txt", "a+")
 # ----- class -----
-class MyThread(Thread):
-    def __init__(self, func, args, name=''):
-        Thread.__init__(self)
-        self.name = name
-        self.func = func
-        self.args = args
-    def run(self):
-        self.func(*self.args)
-
+# multi threading classes:
+class STPTimeOutException(Exception):
+    pass
+class STPTimer(object):
+    def __init__(self, limit):
+        self.limit = limit
+        self.timer = None
+    def start(self):
+        self.timer = threading.Timer(self.limit, self.timeout)
+        self.timer.start()
+        print("timer starting")
+    def restart(self):
+        self.timer.cancel()
+        time.sleep(0.015)
+        self.start()  
+    def timeout(self):
+        raise STPTimeoutException
+    def alive(self):
+        return self.timer.is_alive()
+    def kill(self):
+        self.timer.cancel()
+# ----- others -----
 class Segments(Structure):
     _fields_ = [("flags", c_uint64, 4),  # SYN = 1000, ACK = 0100, FIN = 0010 DATA = 0001
                 ("length", c_uint64, 12),  # maximum length(MSS) is 536.
@@ -125,8 +138,6 @@ def Receiving():
 def Statistic():
    logF.write("Amount of Data Transferred is "+dataBytesTransed+" bytes")
    logF.write("Num of Data Segments Sent(excluding retransmissions): "+segmentSentNum)
-def dealWithACK():
-    #TODO
 # ----- three-way handshaking -----
 # sender -> recver
 bTime = time.time()
@@ -148,34 +159,5 @@ sequenceNum -= 1 # as in example log file, seqNum doesn't change
 fileBytes = FileToBytes(fileName)
 remainderBytes = len(fileBytes) % MSS
 sendBase = sequenceNum
-#while True:
-#    print("yee")
-#    time.sleep(3)
-while (dataBytesTransed < len(fileBytes)):
-    if (dataBytesTransed == len(fileBytes)):
-        print("Transfer Complete!")
-        break
-    repeat = False
-    if ((len(fileBytes) - dataBytesTransed) == remainderBytes):
-        sent_header = InitHeaderBySeg(DATA,remainderBytes,sequenceNum,acknowledgeNum,MWS)
-    else:
-        sent_header = InitHeaderBySeg(DATA,MSS,sequenceNum,acknowledgeNum,MWS)
-    #TODO: Sending(sent_header,,repeat)
-    # ----- multi-threading part -----
-    while True:
-        try:
-            # newThread = MyThread(target=dealWithACK, args=)
-            # maybe put them in the thread:
-            #rcv_header = Receiving()
-            #if (CheckingFlags(rcv_header.segments.flags) == "A"):
-            #    if (rcv_header.segments.acknum > sendBase):
-            #        sendBase = rcv_header.segments.acknum
-        except timeout:
-            repeat = True
-    #TODO:  Sending(sent_header,,repeat)
-            WritingLog(sent_header,"drop")
-            
 
-
-# split into segments with MSS size each
 senderSocket.close()
