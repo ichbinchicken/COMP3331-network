@@ -19,38 +19,49 @@ timeOut = int(argv[6])
 pdrop = int(argv[7])
 seed = int(argv[8])
 sequenceNum = 0
-acknowledgeNum = 0
 # ----- TODO make statistic on page 6 -----
 dataBytesTransed = 0
 segmentSentNum = 0
+retransmitted = 0
 # ----- sending files variables -----
 sendBase = 0
+nextSequenceNum = 0
+dupCount = 0
 # ----- warm up -----
 senderSocket = socket(AF_INET, SOCK_DGRAM)
-senderSocket.settimeout(timeOut)
-logF = open("Sender_log.txt", "a+")
+logF = open("Sender_log.txt", "a")
+try:
+    f = open(file, "rb")
+    fileToSend = f.read()
+    f.close
+except IOError:
+    stderr.write(file+": File doesn't exist!\n")
+    exit(1)
 # ----- class -----
 # multi threading classes:
-class STPTimeOutException(Exception):
-    pass
 class STPTimer(object):
-    def __init__(self, limit):
-        self.limit = limit
+    def __init__(self, interval, timeOutEvent):
+        self.interval = interval
         self.timer = None
+        self.timeOutEvent = timeOutEvent
     def start(self):
-        self.timer = threading.Timer(self.limit, self.timeout)
+        self.timer = threading.Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
         self.timer.start()
         print("timer starting")
     def restart(self):
         self.timer.cancel()
         time.sleep(0.015)
         self.start()  
-    def timeout(self):
-        raise STPTimeoutException
+    def timeoutResend(self):
+        oldNextSeqNum = nextSequenceNum
+        Sending(sendBase)
+        self.start()
+        sequenceNum = oldNextSeqNum
     def alive(self):
         return self.timer.is_alive()
     def kill(self):
         self.timer.cancel()
+        time.sleep(0.015)
 # ----- others -----
 class Segments(Structure):
     _fields_ = [("flags", c_uint64, 4),  # SYN = 1000, ACK = 0100, FIN = 0010 DATA = 0001
@@ -63,17 +74,6 @@ class Header(Union):
     _fields_ = [("segments", Segments),
                ("integer",c_uint64)]
 # ----- subroutines -----
-def FileToBytes(file):
-    try:
-        f = open(file, "r")
-        fileToSend = f.read()
-        f.close
-    except IOError:
-        stderr.write(file+": File doesn't exist!\n")
-        exit(1)
-    fileBytes = fileToSend.encode('ascii')
-    return fileBytes 
-
 def LonglongToBytes(h):
     return (struct.pack('q', h.integer))
 
@@ -113,51 +113,80 @@ def WritingLog(seg, msg):
 def JoinBytes(b1, b2):
     return b"".join([b1,b2])
 
-def Sending(header, data, repeat):
+def HandShaking(header, data):
     global sequenceNum, segmentSentNum, dataBytesTransed
     headerBytes = LonglongToBytes(header)
     dataBytes = data.encode('ascii')
     joinedBytes = JoinBytes(headerBytes, dataBytes)
     senderSocket.sendto(joinedBytes, (receiverName, receiverPort))
-    if (repeat == False):
-        WritingLog(header.segments, "snd")
-        sequenceNum += 1 if (len(data) == 0) else len(data)
-        segmentSentNum += 1 if (len(data) != 0) else 0
-        dataBytesTransed += len(data)
+    WritingLog(header.segments, "snd")
+    sequenceNum += 1 if (len(data) == 0) else len(data)
+    # log file variables:
+    segmentSentNum += 1 if (len(data) != 0) else 0
+    dataBytesTransed += len(data)
 
-def Receiving():
-    global acknowledgeNum
+def HandShakingRcv():
     (rcvMsgBytes, rcv_addr) = senderSocket.recvfrom(2048)
     rcvMsgInt = BytesToLonglong(rcvMsgBytes)
     rcvMsg_header = InitHeaderByInt(rcvMsgInt)
-    WritingLog(rcvMsg_header.segments, "rcv")
-    if (CheckingFlags(rcvMsg_header.segments.flags) == "SA" \
-        or CheckingFlags(rcvMsg_header.segments.flags) == "FA"):
-        acknowledgeNum += 1
-    return rcvMsg_header
+    WritingLog(rcvMsg_header.segments, "rcv") 
+def SendingFile(i): 
+    header = InitHeaderBySeg(DATA,len(data),i,acknowledgeNum,MWS) 
+def ReceivingFile(done):
+    global sendBase,dupCount
+    while True:
+        (msg, receiver_addr) = senderSocket.recvfrom(2048)
+        recvHeader = InitHeaderByInt(BytesToLonglong(msg))
+        recvNum = recvHeader.segments.acknum
+        WritingLog(recvHeader.segments, "rcv")
+        if sendBase < recvNum:
+            sendBase = recvNum
+            dupCount = 0
+            timer.restart()
+            if recvNum == len(fileToSend):
+                done.set()
+                exit(0)
+        elif sendBase == recvNum:
+            dupCount += 1
+            if dupCount == 3:
+                dupCount = 0
+                timer.restart()
+                SendingFile(sendBase)
 def Statistic():
    logF.write("Amount of Data Transferred is "+dataBytesTransed+" bytes")
    logF.write("Num of Data Segments Sent(excluding retransmissions): "+segmentSentNum)
 # ----- three-way handshaking -----
 # sender -> recver
 bTime = time.time()
-header = InitHeaderBySeg(SYN,0,sequenceNum,acknowledgeNum,MWS)
-repeat = False
-Sending(header, "",repeat)
+header = InitHeaderBySeg(SYN,0,sequenceNum,0,MWS)
+HandShaking(header, "")
 
 #  recver -> sender
-rcv_header = Receiving()
+HandShakingRcv()
 
 #sender -> recver
-header = InitHeaderBySeg(ACK,0,sequenceNum,acknowledgeNum,MWS) 
-Sending(header, "", False)
+header = InitHeaderBySeg(ACK,0,sequenceNum,1,MWS) 
+HandShaking(header, "")
 sequenceNum -= 1 # as in example log file, seqNum doesn't change
                  # at the end of handshaking/starting sending files
 
 # ----- Sending files -----
 # sequenceNum = 1
-fileBytes = FileToBytes(fileName)
-remainderBytes = len(fileBytes) % MSS
-sendBase = sequenceNum
+# nextSequenceNum = 0
+# sendBase = 0
+# creating events 
+done = Event()
+# creating threading
+timer = STPTimer(timeOut)
+recvThreading = Thread(name='recv',target=ReceivingFile,args=(done,))
 
+while True:
+    if done.isSet():
+        timer.kill()
+        break
+    if not timer.alive():
+        timer.start()
+    if nextSequenceNum < sendBase + MWS:
+        for i in range(nextSequenceNum, min(sendBase+MWS,len(fileToSend)):
+            SendingFile(i)
 senderSocket.close()

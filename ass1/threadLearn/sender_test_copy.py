@@ -10,16 +10,12 @@ sender_socket = socket(AF_INET, SOCK_DGRAM)
 next_seq = 0
 send_base = 0
 
-# exception
-class STPTimeoutException(Exception):
-    pass
-
 # repeating timer class
 class STPTimer(object):
-    def __init__(self, interval):
+    def __init__(self, interval, event):
         self.interval = interval
         self.timer = None
-    
+        self.timout_event = event
     def start(self):
         self.timer = threading.Timer(self.interval, self.timeout)
         self.timer.start()
@@ -31,13 +27,12 @@ class STPTimer(object):
         self.start()  
 
     def timeout(self):
-        raise STPTimeoutException
-
+        self.timeout_event.set()
     def alive(self):
         return self.timer.is_alive()
     def kill(self):
         self.timer.cancel()
-
+        time.sleep(0.01)
 # receive ack
 def STP_receive(ack_received):
     global send_base, next_seq
@@ -50,7 +45,10 @@ def STP_receive(ack_received):
                 #timer.restart()
             timer.restart()
             ack_received.set()
-
+def Resend(resend_event):
+    global send_base
+    resend_event.wait()
+    send(send_base)
 def send(i):
     global send_base, next_seq
     sender_socket.sendto(bytes([i]), (receiver_host_ip, receiver_port)) 
@@ -59,7 +57,9 @@ def send(i):
 
 
 timer = STPTimer(2)
-ack_received = threading.Event()
+ack_received_event = threading.Event()
+timeout_event = threading.Event()
+resend_event = threading.Event()
 recv_thread = threading.Thread(target=STP_receive, args=(ack_received,))
 recv_thread.start()
 

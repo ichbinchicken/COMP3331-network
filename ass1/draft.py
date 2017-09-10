@@ -49,7 +49,12 @@ def InitHeaderBySeg(flags, length, seqnum, acknum, rwnd):
     header.segments.acknum = acknum
     header.segments.rwnd = rwnd
     return header
+header = Header()
+header = b""
+print()
 
+
+'''
 header1 = InitHeaderByInt(0x14000000000004)
 header2 = InitHeaderBySeg(0x4,0,0,0,0x14)
 print("header1 things...")
@@ -66,3 +71,4 @@ print(type(FileToBytes("test1.txt")))
 print(dataBytes2[0:2])
 print("checking flags...")
 print(CheckingFlags((SYN|ACK)))
+'''
