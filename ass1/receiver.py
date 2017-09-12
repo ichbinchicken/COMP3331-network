@@ -71,12 +71,10 @@ def WritingLog(seg, msg):
             % (msg,(eTime-bTime)*1000,CheckingFlags(seg.flags),\
                 seg.seqnum,seg.length,seg.acknum))
 
-def HandShaking(header, data):
+def HandShaking(header):
     global sequenceNum
     headerBytes = LonglongToBytes(header)
-    dataBytes = data.encode('ascii')
-    joinedBytes = JoinBytes(headerBytes, dataBytes)
-    server_socket.sendto(joinedBytes, sender_ip)
+    server_socket.sendto(headerBytes, sender_ip)
     WritingLog(header.segments, "snd")
     sequenceNum += 1
 
@@ -85,6 +83,7 @@ def HandShakingRcv():
     global sender_ip
     (rcvMsgBytes, sender_ip) = server_socket.recvfrom(2048)
     (recvMsgInt,) = BytesToLonglong(rcvMsgBytes)
+    print(bin(recvMsgInt))
     rcvMsg_header = InitHeaderByInt(recvMsgInt)
     WritingLog(rcvMsg_header.segments, "rcv") 
 def ReceivingFile():
@@ -93,42 +92,45 @@ def ReceivingFile():
     headerInt = Header()
     headerBytes = joinedBytes[0:8]
     dataBytes = joinedBytes[8:len(joinedBytes)]
-    (headerInt,) = BytesToLonglong(headerBytes)
+    (headerInt.integer,) = BytesToLonglong(headerBytes)
+    print(bin(headerInt.integer))
     return (headerInt, dataBytes)
 def Sending(ack):
     global sender_ip
     recverHeader = InitHeaderBySeg(DATA,0,1,ack,0)
     recverHeaderBytes = LonglongToBytes(recverHeader)
-    server_socket.sendto(sendHeaderBytes, sender_ip)
+    server_socket.sendto(recverHeaderBytes, sender_ip)
 
 f = open(filename, "ab") # a: append b:writing in bytes
-recv_num_last = -1
+recv_num_last = 0
+dataLength = 0
+lastDataLength = 0
 # ----- statistics -----
-dataReceived = 0
+dataReceived = 0 
 dataSegmentReceived = 0
 
 # handshaking:
 bTime = time.time()
 HandShakingRcv()
 sendingHeader = InitHeaderBySeg((SYN|ACK),0,0,1,0)
-HandShaking(sendingHeader,"")
+HandShaking(sendingHeader)
 HandShakingRcv()
-
+#print("================================================")
 while True:
-    #msg, sender_ip = server_socket.recvfrom(2048)
-    #(recv_numBytes, string) = msg.split('\x20', 1)
-    #recv_num = recv_numBytes.decode()
-    recvHeader = Header()
-    (recvheader, dataBytes) = ReceivingFile()
-    recv_num = recvHeader.segments.seqnum
-    if (recv_num - 1) != recv_num_last:  # not receiving last
+    (recvHeader, dataBytes) = ReceivingFile()
+    #print("****below")
+    print(bin(recvHeader.integer))
+    recv_num = recvHeader.segments.seqnum - 1
+    dataLength = recvHeader.segments.length
+    print("recv_num is %d" % recv_num)
+    if (recv_num - lastDataLength) != recv_num_last:  # not receiving last
         if recv_num not in dict(buffer): # if ack not received on sender side, sender sent again
             #buffer.append((recv_num, string))
-            bufer.append((recv_num, dataBytes))
+            buffer.append((recv_num, dataBytes))
             print(buffer)
-        Sending(recv_num_last+1)
+        Sending(recv_num_last+lastDataLength)
         #server_socket.sendto(bytes([recv_num_last+1]), sender_ip)
-        print("msg recv'd: %d, ack num: %d" % (recv_num, recv_num_last+1))
+        print("msg recv'd: %d, ack num: %d" % (recv_num, recv_num_last+lastDataLength))
     else:
         buffer.sort()
         last = recv_num
@@ -139,9 +141,10 @@ while True:
             #(last, stringToWrite) = buffer.pop(0)  
             #f.write(stringToWrite)
         #server_socket.sendto(bytes([last+1]), sender_ip)
-        Sending(last+1)
+        Sending(last+len(dataBytes))
+        lastDataLength = len(dataBytes)
         recv_num_last = last
-        print("msg recv'd: %d, ack num: %d" % (recv_num, last+1))
+        print("msg recv'd: %d, ack num: %d" % (recv_num, last+dataLength))
 
 
 f.close()

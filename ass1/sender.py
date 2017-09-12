@@ -49,7 +49,7 @@ class STPTimer(object):
         self.interval = interval
         self.timer = None
     def start(self):
-        self.timer = threading.Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
+        self.timer = Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
         self.timer.start()
         print("timer starting")
     def restart(self):
@@ -57,6 +57,7 @@ class STPTimer(object):
         time.sleep(0.015)
         self.start()  
     def timeoutResend(self):
+        global retransmittedNum
         oldNextSeqNum = nextSequenceNum
         SendingFile(sendBase)
         self.start()
@@ -139,6 +140,8 @@ def SendingFile(i): # i is ready to send TODO: datatransferred
     prob = random.random()
     sequenceNum = i + 1
     length = min(len(fileBytes)-i,MSS)
+    print(length)
+    print(sequenceNum)
     sendingHeader = InitHeaderBySeg(DATA,length,sequenceNum,1,MWS)
     headerBytes = LonglongToBytes(sendingHeader)
     dataBytes = fileBytes[i:i+length]
@@ -155,7 +158,7 @@ def SendingFile(i): # i is ready to send TODO: datatransferred
         WritingLog(sendingHeader.segments,"drop")
 
 def ReceivingFile(done): # receiver only sends a header containing acknum
-    global sendBase,dupCount
+    global sendBase,dupCount,dupACK
     while True:
         (msg, receiver_addr) = senderSocket.recvfrom(2048)
         (msgInt,) = BytesToLonglong(msg)
@@ -197,7 +200,7 @@ header = InitHeaderBySeg(ACK,0,sequenceNum,1,MWS)
 HandShaking(header)
 sequenceNum -= 1 # as in example log file, seqNum doesn't change
                  # at the end of handshaking/starting sending files
-
+print("after handshaking seq num is %d" % sequenceNum)
 # ----- Sending files -----
 # sequenceNum = 1
 # nextSequenceNum = 0
@@ -208,6 +211,8 @@ done = Event()
 timer = STPTimer(timeOut/1000)
 recvThreading = Thread(name='recv',target=ReceivingFile,args=(done,))
 recvThreading.start()
+timer.start()
+SendingFile(0)
 while True:
     if done.isSet():
         timer.kill()
@@ -216,10 +221,16 @@ while True:
     if not timer.alive():
         timer.start()
     if nextSequenceNum < sendBase + MWS:
-        for i in range(nextSequenceNum, min(sendBase+MWS,len(fileBytes))):
+        i = nextSequenceNum
+        while i < min(sendBase+MWS,len(fileBytes)):
             SendingFile(i)
             segmentSentNum += 1
+            i += min(MSS,len(fileBytes)-i)
+        #for i in range(nextSequenceNum, min(sendBase+MWS,len(fileBytes), min(MSS,len(fileBytes)-i))):
+        #    SendingFile(i)
+        #    segmentSentNum += 1
 # ending:
+'''
 header = InitHeaderBySeg(FIN,0,sequenceNum,1,MWS)
 HandShaking(header, "")
 
@@ -229,7 +240,7 @@ HandShakingRcv()
 #sender -> recver
 header = InitHeaderBySeg(ACK,0,sequenceNum,2,MWS) 
 HandShaking(header)
-
+'''
 logF.close()
 
 senderSocket.close()
