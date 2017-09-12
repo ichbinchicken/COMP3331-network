@@ -1,34 +1,27 @@
-from sys import *
+#!/usr/bin/python3
 from socket import *
 from ctypes import *
-from threading import *
+from sys import *
 import time
 import struct
+import random
+import math
+
+# open socket
+server_port = int(argv[1])
+filename = argv[2]
+server_socket = socket(AF_INET, SOCK_DGRAM)
+server_socket.bind(('', server_port))
+print("Receiver is open...")
+buffer = []
+logF = open("Receiver_log.txt", "a")
 # global variables:
 SYN = 0b1000
 ACK = 0b0100
 FIN = 0b0010
 DATA = 0b0001
-fileName = argv[3]
 sequenceNum = 0
-acknowledgeNum = 0
-# ----- TODO make statistic on page 6 -----
-# ----- sending files variables -----
-sendBase = 0
-# ----- warm up -----
-senderSocket = socket(AF_INET, SOCK_DGRAM)
-senderSocket.settimeout(timeOut)
-logF = open("Sender_log.txt", "a+")
 # ----- class -----
-class MyThread(Thread):
-    def __init__(self, func, args, name=''):
-        Thread.__init__(self)
-        self.name = name
-        self.func = func
-        self.args = args
-    def run(self):
-        self.func(*self.args)
-
 class Segments(Structure):
     _fields_ = [("flags", c_uint64, 4),  # SYN = 1000, ACK = 0100, FIN = 0010 DATA = 0001
                 ("length", c_uint64, 12),  # maximum length(MSS) is 536.
@@ -39,18 +32,7 @@ class Segments(Structure):
 class Header(Union):
     _fields_ = [("segments", Segments),
                ("integer",c_uint64)]
-# ----- subroutines -----
-def FileToBytes(file):
-    try:
-        f = open(file, "r")
-        fileToSend = f.read()
-        f.close
-    except IOError:
-        stderr.write(file+": File doesn't exist!\n")
-        exit(1)
-    fileBytes = fileToSend.encode('ascii')
-    return fileBytes 
-
+# ----- functions ----- 
 def LonglongToBytes(h):
     return (struct.pack('q', h.integer))
 
@@ -81,37 +63,85 @@ def CheckingFlags(combo):
         (FIN|ACK): "FA",
     }[combo]
 
+def JoinBytes(b1, b2):
+    return b"".join([b1,b2])
 def WritingLog(seg, msg):
     eTime = time.time()
     logF.write("%-4s %-6.5g %-3s %-5d %-5d %-5d\n"\
             % (msg,(eTime-bTime)*1000,CheckingFlags(seg.flags),\
                 seg.seqnum,seg.length,seg.acknum))
 
-def JoinBytes(b1, b2):
-    return b"".join([b1,b2])
-
-def Sending(header, data, repeat):
-    global sequenceNum, segmentSentNum, dataBytesTransed
+def HandShaking(header, data):
+    global sequenceNum
     headerBytes = LonglongToBytes(header)
     dataBytes = data.encode('ascii')
     joinedBytes = JoinBytes(headerBytes, dataBytes)
-    senderSocket.sendto(joinedBytes, (receiverName, receiverPort))
-    if (repeat == False):
-        WritingLog(header.segments, "snd")
-        sequenceNum += 1 if (len(data) == 0) else len(data)
-        segmentSentNum += 1 if (len(data) != 0) else 0
-        dataBytesTransed += len(data)
+    server_socket.sendto(joinedBytes, sender_ip)
+    WritingLog(header.segments, "snd")
+    sequenceNum += 1
 
-def Receiving():
-    global acknowledgeNum
-    (rcvMsgBytes, rcv_addr) = senderSocket.recvfrom(2048)
-    rcvMsgInt = BytesToLonglong(rcvMsgBytes)
-    rcvMsg_header = InitHeaderByInt(rcvMsgInt)
-    WritingLog(rcvMsg_header.segments, "rcv")
-    if (CheckingFlags(rcvMsg_header.segments.flags) == "SA" \
-        or CheckingFlags(rcvMsg_header.segments.flags) == "FA"):
-        acknowledgeNum += 1
-    return rcvMsg_header
-def Statistic():
-   logF.write("Amount of Data Transferred is "+dataBytesTransed+" bytes")
-   logF.write("Num of Data Segments Sent(excluding retransmissions): "+segmentSentNum)
+
+def HandShakingRcv():
+    global sender_ip
+    (rcvMsgBytes, sender_ip) = server_socket.recvfrom(2048)
+    (recvMsgInt,) = BytesToLonglong(rcvMsgBytes)
+    rcvMsg_header = InitHeaderByInt(recvMsgInt)
+    WritingLog(rcvMsg_header.segments, "rcv") 
+def ReceivingFile():
+    global sender_ip
+    (joinedBytes,sender_ip) = server_socket.recvfrom(2048)
+    headerInt = Header()
+    headerBytes = joinedBytes[0:8]
+    dataBytes = joinedBytes[8:len(joinedBytes)]
+    (headerInt,) = BytesToLonglong(headerBytes)
+    return (headerInt, dataBytes)
+def Sending(ack):
+    global sender_ip
+    recverHeader = InitHeaderBySeg(DATA,0,1,ack,0)
+    recverHeaderBytes = LonglongToBytes(recverHeader)
+    server_socket.sendto(sendHeaderBytes, sender_ip)
+
+f = open(filename, "ab") # a: append b:writing in bytes
+recv_num_last = -1
+# ----- statistics -----
+dataReceived = 0
+dataSegmentReceived = 0
+
+# handshaking:
+bTime = time.time()
+HandShakingRcv()
+sendingHeader = InitHeaderBySeg((SYN|ACK),0,0,1,0)
+HandShaking(sendingHeader,"")
+HandShakingRcv()
+
+while True:
+    #msg, sender_ip = server_socket.recvfrom(2048)
+    #(recv_numBytes, string) = msg.split('\x20', 1)
+    #recv_num = recv_numBytes.decode()
+    recvHeader = Header()
+    (recvheader, dataBytes) = ReceivingFile()
+    recv_num = recvHeader.segments.seqnum
+    if (recv_num - 1) != recv_num_last:  # not receiving last
+        if recv_num not in dict(buffer): # if ack not received on sender side, sender sent again
+            #buffer.append((recv_num, string))
+            bufer.append((recv_num, dataBytes))
+            print(buffer)
+        Sending(recv_num_last+1)
+        #server_socket.sendto(bytes([recv_num_last+1]), sender_ip)
+        print("msg recv'd: %d, ack num: %d" % (recv_num, recv_num_last+1))
+    else:
+        buffer.sort()
+        last = recv_num
+        f.write(dataBytes)
+        while len(buffer) != 0 and buffer[0] == last+1:
+            (last, dataBytes) = buffer.pop(0)
+            f.write(dataBytes)
+            #(last, stringToWrite) = buffer.pop(0)  
+            #f.write(stringToWrite)
+        #server_socket.sendto(bytes([last+1]), sender_ip)
+        Sending(last+1)
+        recv_num_last = last
+        print("msg recv'd: %d, ack num: %d" % (recv_num, last+1))
+
+
+f.close()
