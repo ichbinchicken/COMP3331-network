@@ -1,7 +1,9 @@
 #!/usr/local/bin/python3
 import sys
-f = open("TestingFile.txt", "a+")
-f.write("haha\n")
-f.write("heh")
-f.write("huhunihiasfsdk")
-f.close
+def a():
+    a = 1
+    b = 2
+    print("haha")
+    return (a,b)
+(c,d) = a()
+print((c,d))
