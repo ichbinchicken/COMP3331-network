@@ -176,7 +176,7 @@ def SendingFile(i): # i is ready to send TODO: datatransferred
     if prob > pdrop:
         # sending segments
         senderSocket.sendto(joinBytes,addr)
-        dataBytesTransed += length
+        #dataBytesTransed += length
         print("seq: %d, data: %s" %(seqNum, dataBytes.decode('ascii')))
         WritingLog(sendingHeader.segments,"snd")
     else:
@@ -214,11 +214,11 @@ def ReceivingFile(done): # receiver only sends a header containing acknum
                 print("fast ret")
 def Statistic():
     global dataBytesTransed,segmentSentNum,droppedNum,retransmittedNum, dupACK
-    logF.write("Number of Data Transferred: "+dataBytesTransed+" bytes")
-    logF.write("Number of Data Segments Sent(excluding retransmissions): "+segmentSentNum)
-    logF.write("Number of Packets Dropped: "+droppedNum)
-    logF.write("Number of Retransmitted Segments: "+retransmittedNum)
-    logF.write("Number of Duplicate Acknowledgements: "+dupACK)
+    logF.write("Number of Data Transferred: %d\n" % dataBytesTransed)
+    logF.write("Number of Data Segments Sent(excluding retransmissions): %d\n" % segmentSentNum)
+    logF.write("Number of Packets Dropped: %d\n" % droppedNum)
+    logF.write("Number of Retransmitted Segments: %d\n" % retransmittedNum)
+    logF.write("Number of Duplicate Acknowledgements: %d\n" % dupACK)
 
 
 
@@ -265,6 +265,8 @@ while True:
         i = nextseqNum
         while i < min(sendBase+MWS,FILE_LEN):
             SendingFile(i)
+            l = min(FILE_LEN-i,MSS)
+            dataBytesTransed += l
             segmentSentNum += 1
             i += MSS
             print("called send in main")
@@ -274,12 +276,13 @@ header = InitHeaderBySeg(FIN,0,seqNum,1,MWS)
 HandShaking(header)
 
 #  recver -> sender
-#HandShakingRcv()
+HandShakingRcv()
 
 #sender -> recver
-#header = InitHeaderBySeg(ACK,0,seqNum,2,MWS) 
-#HandShaking(header)
+header = InitHeaderBySeg(ACK,0,seqNum,2,MWS) 
+HandShaking(header)
 
+Statistic()
 logF.close()
 
 senderSocket.close()

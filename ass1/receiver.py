@@ -152,6 +152,10 @@ while True:
         recvDupSeg += 1
     Sending(AckNum)
 
+sendingHeader = InitHeaderBySeg((FIN|ACK),0,0,1,0)
+HandShaking(sendingHeader)
+HandShakingRcv()
 Statistic()
+
 
 f.close()
