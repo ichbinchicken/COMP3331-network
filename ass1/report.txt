@@ -1,0 +1,105 @@
+Sender_log.txt in 500(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 1
+Number of Duplicate Acknowledgements: 20
+
+Receiver_log.txt in 500(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 2
+
+Sender_log.txt in 700(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 1
+Number of Duplicate Acknowledgements: 20
+
+Receiver_log.txt in 700(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 2
+
+Sender_log.txt in 1000(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 1
+Number of Duplicate Acknowledgements: 20
+
+Receiver_log.txt in 1000(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 2
+
+Sender_log.txt in 2500(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 1
+Number of Duplicate Acknowledgements: 20
+
+Receiver_log.txt in 2500(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 2
+
+Sender_log.txt in 2(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 13
+Number of Retransmitted Segments: 79
+Number of Duplicate Acknowledgements: 88
+
+Receiver_log.txt in 2(ms) timeout
+
+Sender_log.txt in 2(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 11
+Number of Retransmitted Segments: 74
+Number of Duplicate Acknowledgements: 85
+
+Receiver_log.txt in 2(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 89
+
+Sender_log.txt in 50(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 6
+Number of Retransmitted Segments: 24
+Number of Duplicate Acknowledgements: 47
+
+Receiver_log.txt in 50(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 31
+
+Sender_log.txt in 100(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 7
+Number of Duplicate Acknowledgements: 28
+
+Receiver_log.txt in 100(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 12
+
+Sender_log.txt in 200(ms) timeout
+Number of Data Transferred: 1593
+Number of Data Segments Sent(excluding retransmissions): 32
+Number of Packets Dropped: 4
+Number of Retransmitted Segments: 1
+Number of Duplicate Acknowledgements: 20
+
+Receiver_log.txt in 200(ms) timeout
+Number of received bytes: 1593 bytes
+Number of received segments number: 32
+Number of duplicated segments: 2
+

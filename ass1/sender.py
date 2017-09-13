@@ -140,9 +140,15 @@ def CheckingFlags(combo):
 
 def WritingLog(seg, msg):
     eTime = time.time()
-    logF.write("%-4s %-6.5g %-3s %-5d %-5d %-5d\n"\
-            % (msg,(eTime-bTime)*1000,CheckingFlags(seg.flags),\
-                seg.seqnum,seg.length,seg.acknum))
+    diff = (eTime - bTime)*1000
+    if int(diff) == 0:
+        logF.write("%-4s %-6.4f %-3s %-5d %-5d %-5d\n"\
+                % (msg,diff,CheckingFlags(seg.flags),\
+                    seg.seqnum,seg.length,seg.acknum))
+    else:    
+        logF.write("%-4s %-6.5g %-3s %-5d %-5d %-5d\n"\
+                % (msg,diff,CheckingFlags(seg.flags),\
+                    seg.seqnum,seg.length,seg.acknum))
 
 def JoinBytes(b1, b2):
     return b"".join([b1,b2])
@@ -160,7 +166,7 @@ def HandShakingRcv():
     rcvMsg_header = InitHeaderByInt(rcvMsgInt)
     WritingLog(rcvMsg_header.segments, "rcv") 
 
-def SendingFile(i): # i is ready to send TODO: datatransferred
+def SendingFile(i): # i is ready to send
     global nextseqNum,dataBytesTransed,droppedNum,seqNum
     prob = random.random()
     print("prob is %f" %prob)
@@ -197,7 +203,7 @@ def ReceivingFile(done): # receiver only sends a header containing acknum
             dupCount = 0
             timer.restart()
             if recvNum == FILE_LEN:
-                print("RECVNUM == LEN(ILEBYTES)")
+                print("RECVNUM == FILE_LEN")
                 done.set()
                 exit(0)
         elif sendBase == recvNum:
