@@ -20,7 +20,7 @@ SYN = 0b1000
 ACK = 0b0100
 FIN = 0b0010
 DATA = 0b0001
-# statistics variables:
+# statistics
 recvBytes = 0
 recvSegNum = 0
 recvDupSeg = 0
@@ -108,9 +108,9 @@ def Sending(ack):
     WritingLog(recverHeader.segments,"snd")
 def Statistic():
     global recvBytes,recvDupSeg,recvSegNum
-    logF.write("Number of received bytes: %d bytes\n" % recvBytes)
-    logF.write("Number of received segments number: %d\n" % recvSegNum)
-    logF.write("Number of duplicated segments: %d\n" % recvDupSeg)
+    logF.write("Number of received bytes: %d bytes" % recvBytes)
+    logF.write("Number of received segments number: %d" % recvSegNum)
+    logF.write("Number of duplicated segments: %d" % recvDupSeg)
 
 f = open(filename, "ab")
 
@@ -129,8 +129,6 @@ while True:
     (recvHeader, dataBytes) = ReceivingFile()
     recv_num = recvHeader.segments.seqnum
     dataLength = recvHeader.segments.length
-    if recvHeader.segments.flags == FIN:
-        break
     print("recv_num is %d" % recv_num)
     if AckNum == recv_num:
         buffer.sort()
@@ -153,5 +151,39 @@ while True:
     Sending(AckNum)
 
 Statistic()
-
+'''
+while True:
+    (recvHeader, dataBytes) = ReceivingFile()
+    recv_num = recvHeader.segments.seqnum
+    dataLength = recvHeader.segments.length
+    print("recv_num is %d" % recv_num)
+    if (recv_num - lastDataLength) != recv_num_last:  # not receiving last
+        if recv_num not in dict(buffer): # if ack not received on sender side, sender sent again
+            buffer.append((recv_num, dataBytes))
+            print(buffer)
+        Sending(recv_num_last+lastDataLength)
+        print("msg recv'd: %d, ack num: %d" % (recv_num, recv_num_last+lastDataLength))
+    else: #recv_num - lastDataLength == recv_num_last:
+        buffer.sort()
+        last = recv_num
+        f.write(dataBytes)
+        while len(buffer) != 0 and buffer[0][0] == last+len(dataBytes):
+            print(len(buffer))
+            (last, dataBytes) = buffer.pop(0)
+            f.write(dataBytes)
+            print("last = %d dataBytes = %s" % (last, dataBytes))
+            #(last, stringToWrite) = buffer.pop(0)  
+            #f.write(stringToWrite)
+        #server_socket.sendto(bytes([last+1]), sender_ip)
+        Sending(last+len(dataBytes))
+        lastDataLength = len(dataBytes)
+        recv_num_last = last
+        print("elif msg recv'd: %d, ack num: %d" % (recv_num, last+lastDataLength))
+'''
+'''
+endHeader = HandShakingRcv()
+sendingHeader = InitHeaderBySeg((FIN|ACK),0,0,1,0)
+HandShaking(sendingHeader)
+HandShakingRcv()
+'''
 f.close()

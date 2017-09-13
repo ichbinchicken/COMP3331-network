@@ -70,10 +70,12 @@ class STPTimer(object):
         self.timer.start()
         print("timer starting")
     def restart(self):
-        self.kill()
-        self.start()  
+        self.timer.cancel()
+        time.sleep(0.1)
+        self.timer = Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
+        self.timer.start()
     def timeoutResend(self):
-        global retransmittedNum,sendBase,nextseqNum
+        global retransmittedNum,sendBase,nextseqNum,lock
         if sendBase < nextseqNum and sendBase < FILE_LEN:
             print("resend in timer, sendbase=%d, nextseq=%d" % (sendBase, nextseqNum))
             ret()
@@ -85,16 +87,18 @@ class STPTimer(object):
             print("got here")
             print(self.timer)
             self.timer.cancel()
-            time.sleep(0.01)
-            #assert self.timer == None or not self.timer.is_alive()
+            time.sleep(0.1)
+            assert not self.timer.is_alive()
 
 # ----- subroutines -----
 def ret():
-    global nextseqNum, sendBase, timer
+    global nextseqNum, sendBase, timer,lock
+    lock.acquire()
     oldNextSeqNum = nextseqNum
     SendingFile(sendBase)
     nextseqNum = oldNextSeqNum
     timer.restart()
+    lock.release()
 def LonglongToBytes(h):
     return (struct.pack('q', h.integer))
 
@@ -170,21 +174,20 @@ def SendingFile(i): # i is ready to send TODO: datatransferred
         droppedNum += 1
         print("DROPPED")
         WritingLog(sendingHeader.segments,"drop")
-
 def ReceivingFile(done): # receiver only sends a header containing acknum
     global sendBase,dupCount,dupACK,nextseqNum, timer
     while True:
         (msg, receiver_addr) = senderSocket.recvfrom(2048)
         (msgInt,) = BytesToLonglong(msg)
         recvHeader = InitHeaderByInt(msgInt)
-        recvNum = recvHeader.segments.acknum
+        recvNum = recvHeader.segments.acknum - 1
         print("ack recv'd %d" % recvNum)
         WritingLog(recvHeader.segments, "rcv")
         if sendBase < recvNum:
             sendBase = recvNum # this means sender has received receiver's acknum and shift window to the next.
             dupCount = 0
             timer.restart()
-            if recvNum == FILE_LEN+1:
+            if recvNum == FILE_LEN:
                 print("RECVNUM == LEN(ILEBYTES)")
                 done.set()
                 exit(0)
@@ -193,10 +196,12 @@ def ReceivingFile(done): # receiver only sends a header containing acknum
             dupACK += 1
             if dupCount == 3:
                 dupCount = 0
+                lock.acquire()
                 timer.restart()
                 nextSeqOld = nextseqNum
                 SendingFile(sendBase)
                 nextseqNum = nextSeqOld
+                lock.release()
                 print("fast ret")
 def Statistic():
     global dataBytesTransed,segmentSentNum,droppedNum,retransmittedNum, dupACK
@@ -233,9 +238,9 @@ done = Event()
 timer = STPTimer(timeOut/1000)
 recvThreading = Thread(name='recv',target=ReceivingFile,args=(done,))
 recvThreading.start()
+lock = RLock()
 while True:
     if done.isSet():
-        exit(1)
         timer.kill()
         print("File transferred!")
         if (timer.alive()):
@@ -247,15 +252,15 @@ while True:
         timer.start()
         print("timer starting in main")
     if nextseqNum < sendBase + MWS:
+        lock.acquire()
         i = nextseqNum
         while i < min(sendBase+MWS,FILE_LEN):
             SendingFile(i)
             segmentSentNum += 1
             i += MSS
             print("called send in main")
-       
+        lock.release()
 # ending:
-'''
 header = InitHeaderBySeg(FIN,0,seqNum,1,MWS)
 HandShaking(header, "")
 

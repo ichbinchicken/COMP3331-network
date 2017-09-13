@@ -62,24 +62,33 @@ class Header(Union):
 
 # multi threading classes:
 class STPTimer(object):
+    id = 0
     def __init__(self, interval):
         self.interval = interval
         self.timer = None
     def start(self):
-        self.timer = Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
+        self.timer = Timer(self.interval, self.timeoutResend()) # arg1:lifetime, arg2:func called when timeout
         self.timer.start()
         print("timer starting")
     def restart(self):
         self.timer.cancel()
         time.sleep(0.1)
-        self.timer = Timer(self.interval, self.timeoutResend) # arg1:lifetime, arg2:func called when timeout
+        #assert not self.timer.is_alive()
+        # assert self.timer.finished()
+        self.timer = Timer(self.interval, self.timeoutResend()) # arg1:lifetime, arg2:func called when timeout
         self.timer.start()
     def timeoutResend(self):
-        global retransmittedNum,sendBase,nextseqNum
-        if sendBase < nextseqNum and sendBase < FILE_LEN:
-            print("resend in timer, sendbase=%d, nextseq=%d" % (sendBase, nextseqNum))
-            ret()
-            retransmittedNum += 1
+        STPTimer.id += 1
+        currIdx = STPTimer.id
+        def f():
+            if STPTimer.id != currIdx:
+                return
+            global retransmittedNum,sendBase,nextseqNum,lock
+            if sendBase < nextseqNum and sendBase < FILE_LEN:
+                print("resend in timer, sendbase=%d, nextseq=%d, time=%f" % (sendBase, nextseqNum, time.time()))
+                ret()
+                retransmittedNum += 1
+        return f
     def alive(self):
         return self.timer != None and self.timer.is_alive()
     def kill(self):
@@ -241,7 +250,6 @@ recvThreading.start()
 lock = RLock()
 while True:
     if done.isSet():
-        exit(1)
         timer.kill()
         print("File transferred!")
         if (timer.alive()):
@@ -262,17 +270,16 @@ while True:
             print("called send in main")
         lock.release()
 # ending:
-'''
 header = InitHeaderBySeg(FIN,0,seqNum,1,MWS)
-HandShaking(header, "")
+HandShaking(header)
 
 #  recver -> sender
-HandShakingRcv()
+#HandShakingRcv()
 
 #sender -> recver
-header = InitHeaderBySeg(ACK,0,seqNum,2,MWS) 
-HandShaking(header)
-'''
+#header = InitHeaderBySeg(ACK,0,seqNum,2,MWS) 
+#HandShaking(header)
+
 logF.close()
 
 senderSocket.close()
