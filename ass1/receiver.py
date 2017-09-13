@@ -136,6 +136,7 @@ while True:
     recv_num = recvHeader.segments.seqnum
     dataLength = recvHeader.segments.length
     if recvHeader.segments.flags == FIN:
+        AckNum = recv_num+1
         break
     print("recv_num is %d" % recv_num)
     if AckNum == recv_num:
@@ -158,7 +159,7 @@ while True:
         recvDupSeg += 1
     Sending(AckNum)
 
-sendingHeader = InitHeaderBySeg((FIN|ACK),0,0,1,0)
+sendingHeader = InitHeaderBySeg((FIN|ACK),0,1,AckNum,0)
 HandShaking(sendingHeader)
 HandShakingRcv()
 Statistic()

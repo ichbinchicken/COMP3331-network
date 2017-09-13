@@ -277,6 +277,7 @@ while True:
             i += MSS
             print("called send in main")
         lock.release()
+seqNum = sendBase+1
 # ending:
 header = InitHeaderBySeg(FIN,0,seqNum,1,MWS)
 HandShaking(header)
