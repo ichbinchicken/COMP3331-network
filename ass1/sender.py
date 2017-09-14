@@ -190,7 +190,7 @@ def SendingFile(i): # i is ready to send
         print("DROPPED")
         WritingLog(sendingHeader.segments,"drop")
 def ReceivingFile(done): # receiver only sends a header containing acknum
-    global sendBase,dupCount,dupACK,nextseqNum, timer
+    global sendBase,dupCount,dupACK,nextseqNum, timer,retransmittedNum
     while True:
         (msg, receiver_addr) = senderSocket.recvfrom(2048)
         (msgInt,) = BytesToLonglong(msg)
@@ -215,6 +215,7 @@ def ReceivingFile(done): # receiver only sends a header containing acknum
                 timer.restart()
                 nextSeqOld = nextseqNum
                 SendingFile(sendBase)
+                retransmittedNum += 1
                 nextseqNum = nextSeqOld
                 lock.release()
                 print("fast ret")

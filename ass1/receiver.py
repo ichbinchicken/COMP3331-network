@@ -108,7 +108,7 @@ def ReceivingFile():
     return (headerInt, dataBytes)
 def Sending(ack):
     global sender_ip
-    recverHeader = InitHeaderBySeg(DATA,0,1,ack,0)
+    recverHeader = InitHeaderBySeg(ACK,0,1,ack,0)
     recverHeaderBytes = LonglongToBytes(recverHeader)
     server_socket.sendto(recverHeaderBytes, sender_ip)
     WritingLog(recverHeader.segments,"snd")
