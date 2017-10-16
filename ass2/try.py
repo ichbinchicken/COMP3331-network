@@ -56,7 +56,7 @@ def dijkstra(src, dest):
     # if failed return a empty list
     route = [src]
     if argv[2] == "SHP":
-       for edge in  
+       for edge in
 
 def updateCap(path):
     global graph
