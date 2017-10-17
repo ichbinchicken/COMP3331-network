@@ -2,19 +2,20 @@
 from sys import *
 import re
 import heapq
+import sys
 
 # node is char of node
 # index is integer index of node
 def index(node):
     return ord(node)-ord('A')
 
-
 class Edge:
     def __init__(self, to, delay, cap):
         self.delay = delay
         self.cap = cap
-        self.to = to  # vertex to (dest)
+        self.to = index(to)  # vertex to (dest)
         self.occupied = 0
+
 
 class Graph:
     def __init__(self):
@@ -29,9 +30,16 @@ class Graph:
             if self.nodes[i] != []:
                 print("%c: " % chr(i+65),end="")
                 for e in self.nodes[i]:
-                    print("%s(delay:%d,cap:%d) " % (e.to, e.delay, e.cap), end="")
+                    print("%c(delay:%d,cap:%d) " % (chr(e.to+65), e.delay, e.cap), end="")
                 print("")
             i += 1
+
+    def realRange(self):
+        count = 0
+        for n in self.nodes:
+            if n != []:
+                count += 1
+        return count
 
 
 def buildGraph():
@@ -49,14 +57,33 @@ def buildGraph():
         print("argv[3]: File doesn't exist.")
         exit()
 
+# find an index which has the minimum distance among vertices and not in route[]
+def miniDistance(dist, visited):
+    global graph
+    minDist = sys.maxsize
+    for k in range(graph.realRange()):
+        if dist[k] < minDist and visited[k] == False:
+            minDist = dist[k]
+            pos = k
+    return pos
 
-def dijkstra(src, dest):
+
+def dijkstra(src, dest): # pass in index
     global graph
     # return a list of edge from src to dest
     # if failed return a empty list
     route = [src]
-    if argv[2] == "SHP":
-       for edge in
+    for i in range(graph.realRange()):
+            dist = [sys.maxsize] * i
+    for j in range(graph.realRange()):
+            visited = [False] * j
+    dist[src] = 0
+    for n in range(graph.realRange()):
+        u = miniDistance(dist, visited)
+        visited[u] = True
+        for e in graph.nodes[u]:
+            
+
 
 def updateCap(path):
     global graph
@@ -78,7 +105,7 @@ def virtualCircuit():
                 _, path = heapq.heappop(hqueue)
                 # update capacity
                 updateCap(path)
-            newPath = dijkstra(src, dest)
+            newPath = dijkstra(index(src), index(dest))
             # if not blocked
             if newPath != []:
                 heapq.heappush(hqueue, (endTime, newPath))

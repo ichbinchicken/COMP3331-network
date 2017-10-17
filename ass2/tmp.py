@@ -1,3 +1,4 @@
+'''
 import re
 def list():
     return [1,2,3]
@@ -8,3 +9,12 @@ for line in f:
     print(t)
 l = list()
 print(l)
+'''
+import sys
+l = [1,2,3]
+for i in l:
+    d = [False] * i
+print(d)
+print(l)
+print(ord(sys.argv[1]))
+
