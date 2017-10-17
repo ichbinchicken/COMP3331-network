@@ -1,8 +1,11 @@
+#!/usr/bin/python3
+
 # Style: using camelCase
 from sys import *
 import re
 import heapq
 import sys
+import math
 
 # node is char of node
 # index is integer index of node
@@ -28,7 +31,7 @@ class Graph:
         i = 0
         while i < 26:
             if self.nodes[i] != []:
-                print("%c: " % chr(i+65),end="")
+                print("%c: " % chr(i+65), end="")
                 for e in self.nodes[i]:
                     print("%c(delay:%d,cap:%d) " % (chr(e.to+65), e.delay, e.cap), end="")
                 print("")
@@ -82,7 +85,7 @@ def dijkstra(src, dest): # pass in index
         u = miniDistance(dist, visited)
         visited[u] = True
         for e in graph.nodes[u]:
-            
+
 
 
 def updateCap(path):
@@ -91,31 +94,59 @@ def updateCap(path):
     for edge in path:
         edge.occupied -= 1
 
-def virtualCircuit():
-    global graph
+
+def readWorkload():
+    workload = []
+
     try:
         fw = open(argv[4], "r")
-        hqueue = []
         for line in fw:
             line.rstrip()
-            (startTime, src, dest, endTime) = re.split(" ", line)
-            endTime = float(endTime)
-            startTime = float(startTime)
-            while len(hqueue) > 0 and hqueue[0][0] < startTime:
-                _, path = heapq.heappop(hqueue)
-                # update capacity
-                updateCap(path)
-            newPath = dijkstra(index(src), index(dest))
-            # if not blocked
-            if newPath != []:
-                heapq.heappush(hqueue, (endTime, newPath))
+            (start, src, dest, end) = re.split(" ", line)
+            endT = float(end)
+            startT = float(start)
+            workload.append((startT, src, dest, endT))
+
     except IOError:
         print("argv[4]: File doesn't exist.")
         exit()
 
+    return workload
+
+
+def virtualCircuit():
+    global graph
+    requests = []
+    workload = readWorkload()
+
+    for start, src, dest, end in workload:
+
+        while len(requests) > 0 and requests[0][0] < start:
+            _, path = heapq.heappop(requests)
+            # update capacity
+            updateCap(path)
+
+        newPath = dijkstra(index(src), index(dest))
+
+        # if not blocked
+        if newPath != []:
+            heapq.heappush(requests, (end, newPath))
+
+
 def virtualPacket():
     #TODO
+    global graph
+    requests = []
+    workload = readWorkload()
+    rate = int(argv[5])
 
+    # add every packet into list
+    for start, src, dest, end in workload:
+        duration = end-start
+        numPackets = math.ceil(duration/rate)
+
+    # sort list by start time
+    requests.sort()
 
 def main():
     global graph
