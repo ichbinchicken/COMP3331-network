@@ -100,7 +100,7 @@ def dijkstra(src, dest): # pass in index
     return path
 
 
-def updateCap(path):
+def releaseCap(path):
     global graph
     # e.g. path = [e(AC),e(CA),e(CE),e(EC),e(EG),e(GE),e(GT),e(TG)]
     for edge in path:
@@ -126,23 +126,21 @@ def readWorkload():
     return workload
 
 
-def virtualCircuit():
-    global graph
-    requests = []
-    workload = readWorkload()
+def virtualCircuit(workload):
+    connections = []
 
     for start, src, dest, end in workload:
 
-        while len(requests) > 0 and requests[0][0] < start:
-            _, path = heapq.heappop(requests)
-            # update capacity
-            updateCap(path)
+        while len(connections) > 0 and connections[0][0] < start:
+            _, path = heapq.heappop(connections)
+            # free up capacity
+            releaseCap(path)
 
         newPath = dijkstra(index(src), index(dest))
 
         # if not blocked
-        if newPath != []:
-            heapq.heappush(requests, (end, newPath))
+        if newPath:
+            heapq.heappush(connections, (end, newPath))
 
 
 def virtualPacket():
@@ -154,17 +152,25 @@ def virtualPacket():
     # add every packet into list
     for start, src, dest, end in workload:
         duration = end-start
-        numPackets = math.ceil(duration/rate)
+        numPackets = int(math.ceil(duration)*rate)
+        interval = 1/rate
+        startT = start
+        for i in range(numPackets):
+            endT = min(startT+interval, end)
+            requests.append((startT, src, dest, endT))
+            startT += interval
 
     # sort list by start time
-    requests.sort()
+    # element in requests: (start, src, dest, end)
+    requests.sort(key=lambda packet:packet[0])
+    virtualCircuit(requests)
 
 
 def main():
     global graph
     buildGraph()
     if argv[1] == "CIRCUIT":
-        virtualCircuit()
+        virtualCircuit(readWorkload())
     elif argv[1] == "PACKET":
         virtualPacket()
     else:
