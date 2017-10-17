@@ -98,13 +98,29 @@ def dijkstra(src, dest): # pass in index
                 else:
                     print("argv[2]:Invalid method\n")
                     exit()
-
-    pos = dest
-    while pos != src:
-        route = [pos] + route
-        pos = prev[pos]
+    p = dest
+    while p != src:
+        route = [p] + route
+        p = prev[p]
     # debugging
     print(route)
+    # update capacity
+    # return
+    path = []
+    i = 0
+    while i < len(route):
+        j = 0
+        while j < len(graph.nodes[route[i]]):
+            e = graph.nodes[route[i]][j]
+            if e.to == route[i+1]:
+                if (e.cap - e.occupied) > 0:
+                    e.occupied += 1
+                    path.append(e)
+                else:
+                    return []
+            j += 1
+        i += 1
+    return path
 
 
 

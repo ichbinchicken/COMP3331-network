@@ -18,6 +18,10 @@ a = 1
 if a == 1: print("hahah")
 print(d)
 print(l)
-print(ord(sys.argv[1]))
+
+def nothing():
+    return []
+
+print("nothing is",nothing()) 
 
 
