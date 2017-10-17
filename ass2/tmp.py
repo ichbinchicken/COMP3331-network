@@ -14,7 +14,10 @@ import sys
 l = [1,2,3]
 for i in l:
     d = [False] * i
+a = 1
+if a == 1: print("hahah")
 print(d)
 print(l)
 print(ord(sys.argv[1]))
+
 

@@ -2,7 +2,6 @@
 from sys import *
 import re
 import heapq
-import sys
 
 # node is char of node
 # index is integer index of node
@@ -33,7 +32,7 @@ class Graph:
                     print("%c(delay:%d,cap:%d) " % (chr(e.to+65), e.delay, e.cap), end="")
                 print("")
             i += 1
-
+    # assuming the nodes are in alphabetical order
     def realRange(self):
         count = 0
         for n in self.nodes:
@@ -60,7 +59,7 @@ def buildGraph():
 # find an index which has the minimum distance among vertices and not in route[]
 def miniDistance(dist, visited):
     global graph
-    minDist = sys.maxsize
+    minDist = maxsize
     for k in range(graph.realRange()):
         if dist[k] < minDist and visited[k] == False:
             minDist = dist[k]
@@ -68,13 +67,14 @@ def miniDistance(dist, visited):
     return pos
 
 
+# return a list of edge from src to dest
+# if failed return a empty list
 def dijkstra(src, dest): # pass in index
     global graph
-    # return a list of edge from src to dest
-    # if failed return a empty list
-    route = [src]
+    route = []
     for i in range(graph.realRange()):
-            dist = [sys.maxsize] * i
+            dist = [maxsize] * i
+            prev = [maxsize] * i
     for j in range(graph.realRange()):
             visited = [False] * j
     dist[src] = 0
@@ -82,7 +82,31 @@ def dijkstra(src, dest): # pass in index
         u = miniDistance(dist, visited)
         visited[u] = True
         for e in graph.nodes[u]:
-            
+            if e.cap > 0 and visited[e.to] == False:
+                if argv[2] == "SHP":
+                    if dist[e.to] > dist[u] + 1:
+                        dist[e.to] = dist[u] + 1
+                        prev[e.to] = u
+                elif argv[2] == "SDP":
+                    if dist[e.to] > dist[u] + e.delay:
+                        dist[e.to] = dist[u] + e.delay
+                        prev[e.to] = u
+                elif argv[2] == "LLP":
+                    ratio = e.occupied/e.cap
+                    dist[e.to] = ratio
+                    prev[e.to] = u
+                else:
+                    print("argv[2]:Invalid method\n")
+                    exit()
+
+    pos = dest
+    while pos != src:
+        route = [pos] + route
+        pos = prev[pos]
+    # debugging
+    print(route)
+
+
 
 
 def updateCap(path):
