@@ -82,7 +82,7 @@ def dijkstra(src, dest): # pass in index
         u = miniDistance(dist, visited)
         visited[u] = True
         for e in graph.nodes[u]:
-            if e.cap > 0 and visited[e.to] == False:
+            if (e.cap - e.occupied) > 0 and visited[e.to] == False:
                 if argv[2] == "SHP":
                     if dist[e.to] > dist[u] + 1:
                         dist[e.to] = dist[u] + 1
