@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# TODO: check delay stats
+
 # Style: using camelCase
 
 from sys import *
@@ -16,10 +18,9 @@ VP = 1
 TOTAL_REQ = 0
 TOTAL_PAK = 1
 SUCCESS_PAK = 2
-BLOCKED_PAK = 3
+SUCCESS_CIR = 3
 TOTAL_HOP = 4
 TOTAL_DELAY = 5
-SUCCESS_CIR = 6
 
 
 # node is char, index is integer
@@ -39,7 +40,7 @@ def buildGraph():
         graph.printGraph()
     except IOError:
         print("argv[3]: File doesn't exist.")
-        exit()
+        exit(1)
 
 # find an index which has the minimum distance among vertices and not in route[]
 def minDistance(dist, visited):
@@ -50,14 +51,13 @@ def minDistance(dist, visited):
         if dist[k] < minDist and visited[k] == False:
             minDist = dist[k]
             pos = k
-
     return pos
 
 
 # return a list of edge from src to dest
 # if failed return a empty list
-def dijkstra(src, dest): # pass in index
-    global graph
+def dijkstra(src, dest, numPackets): # pass in index
+    global graph, stats
     route = []
     indexRange = graph.realRange()
 
@@ -81,20 +81,21 @@ def dijkstra(src, dest): # pass in index
                 elif argv[2] == "LLP":
                     newCost = max(dist[u], e.occupied/e.cap)
                 else:
-                    print("argv[2]:Invalid method")
-                    exit()
+                    print("argv[2]: Invalid method")
+                    exit(1)
 
                 if dist[e.to] > newCost or (dist[e.to]==newCost and random.random()>0.5):
                     dist[e.to] = newCost
                     prev[e.to] = u
 
+    # update capacity and return path
     p = dest
-
-    while p != -1:
+    while prev[p] != -1:
         route = [p] + route
         p = prev[p]
+    if p != dest:
+        route = [p] + route
 
-    # update capacity and return path
     path = []
 
     for i in range(len(route)):
@@ -105,12 +106,22 @@ def dijkstra(src, dest): # pass in index
                     path.append(e)
                 else:
                     # debugging
-                    print(" BLOCKED: "+src+"-"+dest)
-
+                    print(" BLOCKED: %c--%c" % (chr(src+65), chr(dest+65)))
                     return []
 
     # update capacity
     updateCap(path, OCCUPY)
+
+    # write stats
+    stats[TOTAL_HOP] += len(route)-1
+    delay = 0
+    for i in range(len(route)-1):
+        for e in graph.nodes[route[i]]:
+            if e.to == route[i+1]:
+                delay += e.delay
+
+    stats[TOTAL_DELAY] += delay * numPackets
+
 
     # debugging
     #debug_path = [chr(i+65) for i in route]
@@ -133,6 +144,7 @@ def updateCap(path, change):
 
 
 def readWorkload():
+    global stats, rate
     workload = []
 
     try:
@@ -146,37 +158,44 @@ def readWorkload():
             startT = float(start)
             durationT = float(duration)
             workload.append((startT, src, dest, durationT))
-
+            stats[TOTAL_PAK] += int(math.floor(durationT*rate))
     except IOError:
         print("argv[4]: File doesn't exist.")
-        exit()
+        exit(1)
 
+    stats[TOTAL_REQ] = len(workload)
     return workload
 
 
-def virtualCircuit(workload):
+def virtualCircuit(workload, flag):
+    global stats, rate
     # elements in connections: (endtime, path)
     connections = []
 
     for start, src, dest, duration in workload:
+        if duration*rate < 1:
+            continue
+        numPackets = int(math.floor(duration*rate)) if flag==VC else 1
 
         while len(connections) > 0 and connections[0][0] <= start:
             _, path = heapq.heappop(connections)
             # free up capacity
             updateCap(path, RELEASE)
 
-        newPath = dijkstra(index(src), index(dest))
+        newPath = dijkstra(index(src), index(dest), numPackets)
 
         # if not blocked
         if newPath:
             heapq.heappush(connections, (start+duration, newPath))
+            stats[SUCCESS_PAK] += numPackets
+            if flag==VC:
+                stats[SUCCESS_CIR] += 1
 
 
 def virtualPacket():
-    global graph, stats
+    global stats, rate
     requests = []
     workload = readWorkload()
-    rate = int(argv[5])
 
     # add every packet into list
     for start, src, dest, duration in workload:
@@ -184,27 +203,25 @@ def virtualPacket():
         interval = 1/rate
         startT = start
         for i in range(numPackets):
-            if startT+interval > start+duration:
-                stats[BLOCKED_PAK] += numPackets-i
-                break
             requests.append((startT, src, dest, interval))
             startT += interval
 
     # sort list by start time
     # element in requests: (start, src, dest, duration)
     requests.sort(key=lambda packet:packet[0])
-    virtualCircuit(requests)
+    virtualCircuit(requests, VP)
 
 
 def printStats(flag):
     global stats
-    # TODO: need to confirm VP stats, whether per packet or per request
-    print("total number of virtual connection requests: "+stats[TOTAL_REQ])
-    print("total number of packets: "+stats[TOTAL_PAK])
-    print("number of successfully routed packets: "+stats[SUCCESS_PAK])
+    print("total number of virtual connection requests: %d" % stats[TOTAL_REQ])
+    print("total number of packets: %d" % stats[TOTAL_PAK])
+    print("number of successfully routed packets: %d" % stats[SUCCESS_PAK])
     print("percentage of successfully routed packets: %.2f" % (stats[SUCCESS_PAK]/stats[TOTAL_PAK]))
-    print("number of blocked packets: "+stats[BLOCKED_PAK])
-    print("percentage of blocked packets %.2f" % (stats[BLOCKED_PAK]/stats[TOTAL_PAK]))
+
+    blocked = stats[TOTAL_PAK] - stats[SUCCESS_PAK]
+    print("number of blocked packets: %d" % blocked)
+    print("percentage of blocked packets %.2f" % (blocked/stats[TOTAL_PAK]))
 
     ave_hops = ave_delay = -1
     if flag==VC:
@@ -214,24 +231,35 @@ def printStats(flag):
         ave_hops = stats[TOTAL_HOP]/stats[SUCCESS_PAK]
         ave_delay = stats[TOTAL_DELAY]/stats[SUCCESS_PAK]
 
+    # debugging
+    #print("total hop %d, total delay %d, successful pak %d, successful cir %d" \
+    #      % (stats[TOTAL_HOP], stats[TOTAL_DELAY], stats[SUCCESS_PAK], stats[SUCCESS_CIR]))
+
     print("average number of hops per circuit: %.2f" % ave_hops)
     print("average cumulative propagation delay per circuit: %.2f" % ave_delay)
 
 
 def main():
-    global graph, stats
-    stats = [0] * 7
+    global graph, stats, rate
+    stats = [0] * 6
     buildGraph()
     random.seed(42)
+
+    if len(argv) < 6:
+        print("error: Insufficient arguments")
+        exit(1)
+    else:
+        rate = int(argv[5])
+
     if argv[1] == "CIRCUIT":
-        virtualCircuit(readWorkload())
+        virtualCircuit(readWorkload(), VC)
         printStats(VC)
     elif argv[1] == "PACKET":
         virtualPacket()
         printStats(VP)
     else:
         print("error: argv[1] wrong name")
-        exit()
+        exit(1)
 
 class Edge:
     def __init__(self, to, delay, cap):
@@ -244,7 +272,6 @@ class Edge:
 class Graph:
     def __init__(self):
         self.nodes = [[] for node in range(26)]
-        #self.range = 0
 
     def addEdge(self, node, e):
         self.nodes[index(node)].append(e)
@@ -256,11 +283,10 @@ class Graph:
                 print("%c: " % chr(i+65),end="")
                 for e in self.nodes[i]:
                     print("%c(delay:%d,cap:%d) " % (chr(e.to+65), e.delay, e.cap), end="")
-
-                print("")
+                print()
             i += 1
 
-    # assuming the nodes are in alphabetical order
+    # assuming the nodes are in alphabetical order and start from 'A'
     def realRange(self):
         count = 0
         for n in self.nodes:
