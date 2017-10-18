@@ -7,11 +7,13 @@ import heapq
 import math
 import random
 
+RELEASE = -1
+OCCUPY = 1
+
 # node is char of node
 # index is integer index of node
 def index(node):
     return ord(node)-ord('A')
-
 
 def buildGraph():
     global graph
@@ -80,30 +82,42 @@ def dijkstra(src, dest): # pass in index
         route = [p] + route
         p = prev[p]
 
-    # debugging
-    print(route)
-
     # update capacity and return path
     path = []
 
     for i in range(len(route)):
         for e in graph.nodes[route[i]]:
-            if (i<len(route)-1 and e.to == route[i+1]) \
-                    or (i > 0 and e.to == route[i-1]):
+            if i<len(route)-1 and e.to == route[i+1] \
+                    or i > 0 and e.to == route[i-1]:
                 if e.occupied < e.cap:
-                    e.occupied += 1
                     path.append(e)
                 else:
+                    # debugging
+                    print(" BLOCKED: "+src+"-"+dest)
+
                     return []
+
+    # update capacity
+    updateCap(path, OCCUPY)
+
+    # debugging
+    #debug_path = [chr(i+65) for i in route]
+    for i in range(len(route)):
+        if i==0:
+            print(chr(route[i]+65), end="")
+        for e in graph.nodes[route[i]]:
+            if i<len(route)-1 and e.to==route[i+1]:
+                print("--%d/%d--%c" % (e.occupied, e.cap, chr(e.to+65)), end="")
+    print()
 
     return path
 
 
-def releaseCap(path):
-    global graph
+def updateCap(path, change):
+    #global graph
     # e.g. path = [e(AC),e(CA),e(CE),e(EC),e(EG),e(GE),e(GT),e(TG)]
     for edge in path:
-        edge.occupied -= 1
+        edge.occupied += change
 
 
 def readWorkload():
@@ -112,11 +126,14 @@ def readWorkload():
     try:
         fw = open(argv[4], "r")
         for line in fw:
+            # skip empty line or white spaces
+            if len(line)==0 or line.isspace():
+                continue
             line.rstrip()
-            (start, src, dest, end) = re.split(" ", line)
-            endT = float(end)
+            (start, src, dest, duration) = re.split(" ", line)
             startT = float(start)
-            workload.append((startT, src, dest, endT))
+            durationT = float(duration)
+            workload.append((startT, src, dest, durationT))
 
     except IOError:
         print("argv[4]: File doesn't exist.")
@@ -126,20 +143,21 @@ def readWorkload():
 
 
 def virtualCircuit(workload):
+    # elements in connections: (endtime, path)
     connections = []
 
-    for start, src, dest, end in workload:
+    for start, src, dest, duration in workload:
 
-        while len(connections) > 0 and connections[0][0] < start:
+        while len(connections) > 0 and connections[0][0] <= start:
             _, path = heapq.heappop(connections)
             # free up capacity
-            releaseCap(path)
+            updateCap(path, RELEASE)
 
         newPath = dijkstra(index(src), index(dest))
 
         # if not blocked
         if newPath:
-            heapq.heappush(connections, (end, newPath))
+            heapq.heappush(connections, (start+duration, newPath))
 
 
 def virtualPacket():
@@ -149,18 +167,16 @@ def virtualPacket():
     rate = int(argv[5])
 
     # add every packet into list
-    for start, src, dest, end in workload:
-        duration = end-start
-        numPackets = int(math.ceil(duration)*rate)
+    for start, src, dest, duration in workload:
+        numPackets = int(math.floor(duration*rate))
         interval = 1/rate
         startT = start
         for i in range(numPackets):
-            endT = min(startT+interval, end)
-            requests.append((startT, src, dest, endT))
+            requests.append((startT, src, dest, interval))
             startT += interval
 
     # sort list by start time
-    # element in requests: (start, src, dest, end)
+    # element in requests: (start, src, dest, duration)
     requests.sort(key=lambda packet:packet[0])
     virtualCircuit(requests)
 
