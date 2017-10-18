@@ -1,17 +1,28 @@
 #!/usr/bin/python3
 
 # Style: using camelCase
+
 from sys import *
 import re
 import heapq
 import math
 import random
 
+# constants
 RELEASE = -1
 OCCUPY = 1
+VC = 0
+VP = 1
+TOTAL_REQ = 0
+TOTAL_PAK = 1
+SUCCESS_PAK = 2
+BLOCKED_PAK = 3
+TOTAL_HOP = 4
+TOTAL_DELAY = 5
+SUCCESS_CIR = 6
 
-# node is char of node
-# index is integer index of node
+
+# node is char, index is integer
 def index(node):
     return ord(node)-ord('A')
 
@@ -60,7 +71,8 @@ def dijkstra(src, dest): # pass in index
         u = minDistance(dist, visited)
         visited[u] = True
         for e in graph.nodes[u]:
-            if e.cap > e.occupied and visited[e.to] == False:
+            #if e.cap > e.occupied and visited[e.to] == False:
+            if visited[e.to] == False:
                 newCost = maxsize
                 if argv[2] == "SHP":
                     newCost = dist[u]+1
@@ -161,7 +173,7 @@ def virtualCircuit(workload):
 
 
 def virtualPacket():
-    global graph
+    global graph, stats
     requests = []
     workload = readWorkload()
     rate = int(argv[5])
@@ -172,6 +184,9 @@ def virtualPacket():
         interval = 1/rate
         startT = start
         for i in range(numPackets):
+            if startT+interval > start+duration:
+                stats[BLOCKED_PAK] += numPackets-i
+                break
             requests.append((startT, src, dest, interval))
             startT += interval
 
@@ -181,18 +196,42 @@ def virtualPacket():
     virtualCircuit(requests)
 
 
+def printStats(flag):
+    global stats
+    # TODO: need to confirm VP stats, whether per packet or per request
+    print("total number of virtual connection requests: "+stats[TOTAL_REQ])
+    print("total number of packets: "+stats[TOTAL_PAK])
+    print("number of successfully routed packets: "+stats[SUCCESS_PAK])
+    print("percentage of successfully routed packets: %.2f" % (stats[SUCCESS_PAK]/stats[TOTAL_PAK]))
+    print("number of blocked packets: "+stats[BLOCKED_PAK])
+    print("percentage of blocked packets %.2f" % (stats[BLOCKED_PAK]/stats[TOTAL_PAK]))
+
+    ave_hops = ave_delay = -1
+    if flag==VC:
+        ave_hops = stats[TOTAL_HOP]/stats[SUCCESS_CIR]
+        ave_delay = stats[TOTAL_DELAY]/stats[SUCCESS_CIR]
+    elif flag==VP:
+        ave_hops = stats[TOTAL_HOP]/stats[SUCCESS_PAK]
+        ave_delay = stats[TOTAL_DELAY]/stats[SUCCESS_PAK]
+
+    print("average number of hops per circuit: %.2f" % ave_hops)
+    print("average cumulative propagation delay per circuit: %.2f" % ave_delay)
+
+
 def main():
-    global graph
+    global graph, stats
+    stats = [0] * 7
     buildGraph()
     random.seed(42)
     if argv[1] == "CIRCUIT":
         virtualCircuit(readWorkload())
+        printStats(VC)
     elif argv[1] == "PACKET":
         virtualPacket()
+        printStats(VP)
     else:
         print("error: argv[1] wrong name")
         exit()
-
 
 class Edge:
     def __init__(self, to, delay, cap):
