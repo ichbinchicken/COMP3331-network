@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-# TODO: check delay stats
-
 # Style: using camelCase
 
 from sys import *
@@ -9,6 +7,7 @@ import re
 import heapq
 import math
 import random
+import time
 
 # constants
 RELEASE = -1
@@ -120,7 +119,7 @@ def dijkstra(src, dest, numPackets): # pass in index
             if e.to == route[i+1]:
                 delay += e.delay
 
-    stats[TOTAL_DELAY] += delay * numPackets
+    stats[TOTAL_DELAY] += delay #* numPackets
 
 
     # debugging
@@ -217,11 +216,11 @@ def printStats(flag):
     print("total number of virtual connection requests: %d" % stats[TOTAL_REQ])
     print("total number of packets: %d" % stats[TOTAL_PAK])
     print("number of successfully routed packets: %d" % stats[SUCCESS_PAK])
-    print("percentage of successfully routed packets: %.2f" % (stats[SUCCESS_PAK]/stats[TOTAL_PAK]))
+    print("percentage of successfully routed packets: %.2f" % (stats[SUCCESS_PAK]/stats[TOTAL_PAK]*100))
 
     blocked = stats[TOTAL_PAK] - stats[SUCCESS_PAK]
     print("number of blocked packets: %d" % blocked)
-    print("percentage of blocked packets %.2f" % (blocked/stats[TOTAL_PAK]))
+    print("percentage of blocked packets %.2f" % (blocked/stats[TOTAL_PAK]*100))
 
     ave_hops = ave_delay = -1
     if flag==VC:
@@ -243,7 +242,7 @@ def main():
     global graph, stats, rate
     stats = [0] * 6
     buildGraph()
-    random.seed(42)
+    random.seed(time.time())
 
     if len(argv) < 6:
         print("error: Insufficient arguments")
