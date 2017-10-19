@@ -170,6 +170,7 @@ def virtualCircuit(workload, flag):
     global stats, rate
     # elements in connections: (endtime, path)
     connections = []
+    id = 0
 
     for start, src, dest, duration in workload:
         if duration*rate < 1:
@@ -177,7 +178,7 @@ def virtualCircuit(workload, flag):
         numPackets = int(math.floor(duration*rate)) if flag==VC else 1
 
         while len(connections) > 0 and connections[0][0] <= start:
-            _, path = heapq.heappop(connections)
+            _, _, path = heapq.heappop(connections)
             # free up capacity
             updateCap(path, RELEASE)
 
@@ -185,8 +186,9 @@ def virtualCircuit(workload, flag):
 
         # if not blocked
         if newPath:
-            heapq.heappush(connections, (start+duration, newPath))
+            heapq.heappush(connections, (start+duration, id, newPath))
             stats[SUCCESS_PAK] += numPackets
+            id += 1
             if flag==VC:
                 stats[SUCCESS_CIR] += 1
 
@@ -259,6 +261,7 @@ def main():
     else:
         print("error: argv[1] wrong name")
         exit(1)
+
 
 class Edge:
     def __init__(self, to, delay, cap):
