@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
-# Style: using camelCase
+# COMP3331 Assignment 2, 2017 S2
+# Group assignment written by Ziming Zheng (5052592) and Yi Xiao (5129195)
+# October 2017
 
 from sys import *
 import re
