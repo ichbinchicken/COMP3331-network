@@ -36,7 +36,8 @@ def buildGraph():
             (node, to, delay, cap) = re.split(" ", line)
             graph.addEdge(node, Edge(to, int(delay), int(cap)))
             graph.addEdge(to, Edge(node, int(delay), int(cap)))
-        graph.printGraph()
+        # debugging
+        # graph.printGraph()
     except IOError:
         print("argv[3]: File doesn't exist.")
         exit(1)
@@ -55,7 +56,7 @@ def minDistance(dist, visited):
 
 # return a list of edge from src to dest
 # if failed return a empty list
-def dijkstra(src, dest, numPackets): # pass in index
+def dijkstra(src, dest): # pass in index
     global graph, stats
     route = []
     indexRange = graph.realRange()
@@ -105,7 +106,7 @@ def dijkstra(src, dest, numPackets): # pass in index
                     path.append(e)
                 else:
                     # debugging
-                    print(" BLOCKED: %c--%c" % (chr(src+65), chr(dest+65)))
+                    # print(" BLOCKED: %c--%c" % (chr(src+65), chr(dest+65)))
                     return []
 
     # update capacity
@@ -117,20 +118,17 @@ def dijkstra(src, dest, numPackets): # pass in index
     for i in range(len(route)-1):
         for e in graph.nodes[route[i]]:
             if e.to == route[i+1]:
-                delay += e.delay
-
-    stats[TOTAL_DELAY] += delay #* numPackets
-
+                stats[TOTAL_DELAY] += e.delay
 
     # debugging
-    #debug_path = [chr(i+65) for i in route]
-    for i in range(len(route)):
-        if i==0:
-            print(chr(route[i]+65), end="")
-        for e in graph.nodes[route[i]]:
-            if i<len(route)-1 and e.to==route[i+1]:
-                print("--%d/%d--%c" % (e.occupied, e.cap, chr(e.to+65)), end="")
-    print()
+    # for i in range(len(route)):
+    #     if i==0:
+    #         print(chr(route[i]+65), end="")
+    #     for e in graph.nodes[route[i]]:
+    #         if i<len(route)-1 and e.to==route[i+1]:
+    #             print("--%d/%d--%c" % (e.occupied, e.cap, chr(e.to+65)), end="")
+    # print()
+
 
     return path
 
@@ -181,7 +179,7 @@ def virtualCircuit(workload, flag):
             # free up capacity
             updateCap(path, RELEASE)
 
-        newPath = dijkstra(index(src), index(dest), numPackets)
+        newPath = dijkstra(index(src), index(dest))
 
         # if not blocked
         if newPath:
@@ -220,7 +218,7 @@ def printStats(flag):
 
     blocked = stats[TOTAL_PAK] - stats[SUCCESS_PAK]
     print("number of blocked packets: %d" % blocked)
-    print("percentage of blocked packets %.2f" % (blocked/stats[TOTAL_PAK]*100))
+    print("percentage of blocked packets: %.2f" % (blocked/stats[TOTAL_PAK]*100))
 
     ave_hops = ave_delay = -1
     if flag==VC:
@@ -231,7 +229,7 @@ def printStats(flag):
         ave_delay = stats[TOTAL_DELAY]/stats[SUCCESS_PAK]
 
     # debugging
-    #print("total hop %d, total delay %d, successful pak %d, successful cir %d" \
+    # print("total hop %d, total delay %d, successful pak %d, successful cir %d" \
     #      % (stats[TOTAL_HOP], stats[TOTAL_DELAY], stats[SUCCESS_PAK], stats[SUCCESS_CIR]))
 
     print("average number of hops per circuit: %.2f" % ave_hops)
